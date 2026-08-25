@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Submission {
+  id           String   @id @default(cuid())
+  sourceUrl    String   @unique
+  imageUrl     String
+  title        String
+  domain       String
+  format       String
+  fileSize     Int?
+  score        Int
+  channelCount Int
+  status       String   @default("Ready")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([createdAt])
+}
