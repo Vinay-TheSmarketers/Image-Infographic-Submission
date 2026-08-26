@@ -1,100 +1,90 @@
-# vIS — Smarketers Infographic Submitter
+# vIS — Smarketers Infographic Submitter Architecture & Guide
 
-vIS is a local-first Next.js application for inspecting, scoring, and organizing public infographic URLs before off-page distribution. It follows redirects safely, recognizes direct image links and Open Graph images, calculates a readiness score, matches a channel count, and saves the queue in SQLite.
+> **Smarketers Off-Page Suite** — Local-first Next.js application that inspects, scores, and organizes public infographic URLs before off-page distribution, storing targets in a local SQLite database via Prisma ORM.
 
-## Stack
+---
 
-- Next.js 16 App Router, React 19, and TypeScript
-- Tailwind CSS 4 and owned shadcn/ui component source
-- Prisma 6 with a local SQLite database
-- Lucide React icons and Sonner-powered shadcn toasts
-- Zod request validation
+## 🏗️ System Architecture Overview
 
-Every package is pinned to an exact version in `package.json`; `package-lock.json` locks the full dependency graph.
+```mermaid
+flowchart TD
+    User([User Input: Infographic Page / Image URL]) --> UI[Next.js App UI]
+    UI -->|POST /api/submissions| API[Route Handler /api/submissions]
+    
+    subgraph Inspection & Scraper Engine
+        API --> Fetcher[HTTP Redirect & Fetcher]
+        Fetcher --> Inspector[infographic.ts - Infographic Inspector]
+        Inspector -->|Check Image Types| ImageCheck{Direct Image or OG Meta?}
+        ImageCheck -->|Direct Link| Direct[Parse Image Dimensions & Format]
+        ImageCheck -->|Web Page| OGParser[Extract og:image & Alt Tags via Cheerio]
+    end
+    
+    subgraph Scoring & Distribution Matching
+        Direct --> Scoring[Readiness Scoring Engine]
+        OGParser --> Scoring
+        Scoring -->|Assess Resolution, Aspect Ratio, Meta| ReadinessScore[Calculate Score 0-100]
+        ReadinessScore --> ChannelMatch[Distribution Channel Matcher]
+    end
+    
+    subgraph Database Persistence
+        ChannelMatch --> Prisma[Prisma ORM Client]
+        Prisma --> DB[(SQLite Database dev.db)]
+        DB --> UIResponse[JSON Response with Submissions Queue]
+        UIResponse --> UI
+    end
+```
 
-## Run locally
+---
 
-Requirements: Node.js 20.9 or newer and npm 10 or newer.
+## 🔍 How Inspection & Channel Matching Works
+
+### 1. Multi-Format Image Detection (`src/lib/infographic.ts`)
+vIS inspects submitted URLs across two modes:
+- **Direct Image Links**: Detects `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg` files directly.
+- **HTML Page Extraction**: Scans web pages for `og:image`, `twitter:image`, and high-resolution `<img>` tags inside `<main>` or `<article>` tags.
+
+### 2. Readiness Scoring Algorithm (0–100)
+Scores visual assets across four criteria:
+1. **Resolution & Clarity**: High-resolution images receive higher weights.
+2. **Vertical Aspect Ratio**: Tall infographics (vertical ratio > 2:1) receive bonus readiness scores.
+3. **Open Graph Completeness**: Validates presence of title, description, and canonical tags.
+4. **Alt Text Optimization**: Evaluates descriptive alt text for search engine indexability.
+
+### 3. Channel Distribution Matcher
+Matches qualified infographics to top distribution platforms:
+- **Pinterest** (Visual Discovery Network)
+- **Visual.ly** (Curated Infographic Directory)
+- **Infographic Bee** (Niche Visual Publishing)
+- **Behance / Dribbble** (Design Showcase Outlets)
+
+---
+
+## 📊 Tech Stack
+
+- **Framework**: Next.js 16 (App Router), React 19, TypeScript
+- **Styling**: Tailwind CSS 4, shadcn/ui components, Lucide Icons, Sonner Toasts
+- **Database & ORM**: Prisma 6 with local SQLite database
+- **Validation**: Zod 3.x
+
+---
+
+## 🚀 Running Locally
 
 ```bash
+# Install dependencies
 npm install
-copy .env.example .env
-npm run db:setup
+
+# Run database migrations
+npx prisma db push
+
+# Run dev server
 npm run dev
+
+# Open in browser
+http://localhost:3000
 ```
 
-On macOS or Linux, replace the `copy` command with:
+---
 
-```bash
-cp .env.example .env
-```
-
-Open [http://localhost:3000](http://localhost:3000). Paste a public direct image URL or a public page containing an `og:image` or `twitter:image` tag, then choose **Get Started**.
-
-No external API key is required. `DATABASE_URL="file:./dev.db"` creates the database at `prisma/dev.db`. The idempotent setup command applies the checked-in schema through Prisma Client, so repeated runs are safe. Set `NEXT_PUBLIC_APP_URL` to the public origin when deploying so social-preview URLs are absolute.
-
-## Production build
-
-```bash
-npm run lint
-npm run build
-npm start
-```
-
-The build uses Next.js standalone output. SQLite is intentionally local: deploy to a persistent Node.js host and mount durable storage for `prisma/dev.db`. Serverless filesystems are not appropriate for this database configuration.
-
-## Database commands
-
-```bash
-npm run db:generate
-npm run db:setup
-npm run db:studio
-```
-
-## API
-
-### `GET /api/submissions`
-
-Returns the eight most recently inspected submissions.
-
-### `POST /api/submissions`
-
-Request:
-
-```json
-{ "url": "https://example.org/infographic.png" }
-```
-
-The route accepts HTTP(S) only, blocks local and private-network destinations, validates every redirect, limits response inspection, verifies the image MIME type, and then creates or refreshes the SQLite record.
-
-## Foundational open-source projects
-
-The application is built from the same open-source foundations named in the brief. To inspect their upstream source independently:
-
-```bash
-git clone https://github.com/ixartz/Next-js-Boilerplate.git references/nextjs-boilerplate
-git clone https://github.com/shadcn-ui/ui.git references/shadcn-ui
-git clone https://github.com/prisma/prisma.git references/prisma
-git clone https://github.com/lucide-icons/lucide.git references/lucide
-```
-
-To reproduce the project initialization in an empty, lowercase-named directory:
-
-```bash
-npx create-next-app@16.3.2 vis-app --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm --yes
-cd vis-app
-npx shadcn@4.19.0 init -d --base radix
-npx shadcn@4.19.0 add input card badge table sonner -y
-npm install --save-exact @prisma/client@6.19.0 prisma@6.19.0 lucide-react@1.34.0 zod@4.4.3
-```
-
-## Project layout
-
-```text
-prisma/schema.prisma            SQLite data model
-src/app/api/submissions/route.ts API read/write route
-src/lib/infographic.ts          URL safety and image analysis
-src/lib/prisma.ts               Development-safe Prisma client
-src/components/submission-app.tsx Main interactive workspace
-src/components/ui/              Owned shadcn/ui component source
-```
+## 🌐 Part of Smarketers Off-Page Suite
+vIS is part of the Smarketers Off-Page Suite — open-source, local-first marketing applications designed for privacy, speed, and reliability without SaaS dependencies.
