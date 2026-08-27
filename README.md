@@ -1,10 +1,48 @@
-# vIS — Smarketers Infographic Submitter Architecture & Guide
+# vIS — Smarketers Infographic Submitter Architecture & Strategy Guide
 
 > **Smarketers Off-Page Suite** — Local-first Next.js application that inspects, scores, and organizes public infographic URLs before off-page distribution, storing targets in a local SQLite database via Prisma ORM.
 
 ---
 
-## 🏗️ System Architecture Overview
+## 🤖 Automation Matrix: Automated vs. Human Operator Boundaries
+
+To maximize visual link building equity and ensure high directory acceptance rates, vIS delineates automated inspection from operator tasks:
+
+```
+┌─────────────────────────────────────────────────────────┬─────────────────────────────────────────────────────────┐
+│ ⚡ 100% AUTOMATED BY vIS ENGINE                        │ 👤 HUMAN OPERATOR GATEWAY & DIRECTORY SUBMISSION        │
+├─────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
+│ • Direct image link & Open Graph meta tag detection     │ • Designing high-quality 800x2000px vertical infographics│
+│ • Aspect ratio & resolution calculation                 │ • Creating custom embed code with targeted backlinks    │
+│ • 4-criterion readiness scoring (0–100%)                │ • Uploading visual assets to Pinterest, Visual.ly, etc. │
+│ • Distribution channel matching                         │ • Confirming image indexing via Google Images Search    │
+│ • Prisma ORM SQLite database persistence                │ • Monitoring referral traffic from visual directories   │
+└─────────────────────────────────────────────────────────┴─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Intricate Visual SEO Strategy Playbook
+
+### 1. Infographic Dimensions & Readiness Standards
+vIS evaluates visual assets across four critical readiness standards:
+- **Vertical Aspect Ratio (> 2:1)**: Tall vertical infographics (e.g. 800px width by 2000px–3000px height) achieve the highest engagement rates on Pinterest and infographic directories.
+- **High Resolution & Crisp Typography**: Image text must be legibly readable without zooming.
+- **Open Graph Metadata Completeness**: Host page must configure `og:image`, `og:title`, and `og:description` tags.
+
+### 2. The HTML Embed Code Strategy
+When publishing an infographic on your website, provide an easily copyable HTML embed snippet:
+```html
+<a href="https://yourbrand.com/target-page">
+  <img src="https://yourbrand.com/images/infographic.png" alt="Niche Research Infographic by YourBrand" />
+</a>
+<p>Source: <a href="https://yourbrand.com/target-page">YourBrand</a></p>
+```
+When other bloggers embed your infographic on their sites, you automatically earn a contextual dofollow backlink!
+
+---
+
+## 🏗️ End-to-End System Architecture
 
 ```mermaid
 flowchart TD
@@ -36,26 +74,13 @@ flowchart TD
 
 ---
 
-## 🔍 How Inspection & Channel Matching Works
+## 💻 Code Internals & Technical Deep Dive
 
-### 1. Multi-Format Image Detection (`src/lib/infographic.ts`)
-vIS inspects submitted URLs across two modes:
-- **Direct Image Links**: Detects `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg` files directly.
-- **HTML Page Extraction**: Scans web pages for `og:image`, `twitter:image`, and high-resolution `<img>` tags inside `<main>` or `<article>` tags.
+### 1. Multi-Format Image Inspector (`src/lib/infographic.ts`)
+Inspects direct `.png`, `.jpg`, `.webp` assets as well as HTML landing pages for `og:image` and `<main>` image tags.
 
-### 2. Readiness Scoring Algorithm (0–100)
-Scores visual assets across four criteria:
-1. **Resolution & Clarity**: High-resolution images receive higher weights.
-2. **Vertical Aspect Ratio**: Tall infographics (vertical ratio > 2:1) receive bonus readiness scores.
-3. **Open Graph Completeness**: Validates presence of title, description, and canonical tags.
-4. **Alt Text Optimization**: Evaluates descriptive alt text for search engine indexability.
-
-### 3. Channel Distribution Matcher
-Matches qualified infographics to top distribution platforms:
-- **Pinterest** (Visual Discovery Network)
-- **Visual.ly** (Curated Infographic Directory)
-- **Infographic Bee** (Niche Visual Publishing)
-- **Behance / Dribbble** (Design Showcase Outlets)
+### 2. Database Persistence via Prisma ORM
+Stores submission queues, scores, and channel statuses in a local SQLite file (`prisma/dev.db`).
 
 ---
 
